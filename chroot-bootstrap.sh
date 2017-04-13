@@ -57,7 +57,7 @@ update-grub
 } >> /etc/network/interfaces
 
 # Install standard packages
-DEBIAN_FRONTEND=noninteractive apt-get install -y ubuntu-standard cloud-init
+UBUNTU_FRONTEND=noninteractive apt-get install -y ubuntu-standard cloud-init
 
 ls /boot/grub/*/zfs.mod
 
@@ -65,3 +65,6 @@ ls /boot/grub/*/zfs.mod
 zfs snapshot rpool/ROOT/ubuntu@install
 # In the future, you will likely want to take snapshots before each upgrade, 
 # and remove old snapshots (including this one) at some point to save space.
+# sudo adduser sa --gecos "First Last,RoomNumber,WorkPhone,HomePhone" --disabled-password
+sudo useradd sa --create-home --shell /bin/bash --groups sudo
+echo "sa:sa" | sudo chpasswd
