@@ -3,9 +3,9 @@
 set -ex
 
 # Necessary need universe source
-sudo apt-add-repository universe
+UBUNTU_FRONTEND=noninteractive sudo apt-add-repository universe -y
 # Update APT with new sources
-apt-get update
+UBUNTU_FRONTEND=noninteractive sudo apt-get update  -y
 
 # Do not configure grub during package install
 echo 'grub-pc grub-pc/install_devices_empty select true' | debconf-set-selections
@@ -16,15 +16,15 @@ UBUNTU_FRONTEND=noninteractive apt-get install -y \
 	linux-image-generic \
 	linux-headers-generic \
 	grub-pc \
-	zfs-zed \
 	zfsutils-linux \
 	zfs-initramfs \
-	zfs-dkms \
+	dosfstools \
 	gdisk
 
 # Set the locale to en_US.UTF-8
 locale-gen --purge "en_US.UTF-8"
 echo -e 'LANG="en_US.UTF-8"\nLANGUAGE="en_US:en"\n' > /etc/default/locale
+# dpkg-reconfigure tzdata
 
 # Install OpenSSH
 apt-get install -y --no-install-recommends openssh-server
@@ -33,9 +33,14 @@ apt-get install -y --no-install-recommends openssh-server
 # shellcheck disable=SC2016
 sed -ri 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="boot=zfs \$bootfs"/' /etc/default/grub
 grub-probe /
-grub-install /dev/xvdf
+
+# Install the boot loader
+grub-install /dev/sda
 
 # Configure and update GRUB
+# Refresh the initrd files:
+update-initramfs -c -k all
+
 mkdir -p /etc/default/grub.d
 {
 	echo 'GRUB_RECORDFAIL_TIMEOUT=0'
@@ -47,9 +52,14 @@ update-grub
 
 # Set options for the default interface
 {
-	echo 'auto eth0'
-	echo 'iface eth0 inet dhcp'
+	echo 'auto ens33'
+	echo 'iface ens33 inet dhcp'
 } >> /etc/network/interfaces
 
 # Install standard packages
 DEBIAN_FRONTEND=noninteractive apt-get install -y ubuntu-standard cloud-init
+
+ls /boot/grub/*/zfs.mod
+Snapshot the initial installation:
+
+zfs snapshot rpool/ROOT/ubuntu@install
