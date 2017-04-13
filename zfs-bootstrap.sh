@@ -15,7 +15,8 @@ UBUNTU_FRONTEND=noninteractive sudo apt-get install -y \
 
 # Partition the new root EBS volume
 sudo sgdisk -Zg -n1:0:4095 -t1:EF02 -c1:GRUB -n2:0:0 -t2:BF01 -c2:ZFS /dev/sda
-
+zpool destroy -f rpool
+sudo mount | grep -v zfs | tac | awk '/\/mnt/ {print $3}' | xargs -i{} umount -lf {}
 # Create zpool and filesystems on the new EBS volume
 sudo zpool create \
 	-o altroot=/mnt \
@@ -112,22 +113,22 @@ sudo mount --rbind /sys /mnt/sys
 
 # Copy the bootstrap script into place and execute inside chroot
 sudo cp chroot-bootstrap.sh /mnt/tmp/chroot-bootstrap.sh
-sudo chroot /mnt /tmp/chroot-bootstrap.sh
-sudo rm -f /mnt/tmp/chroot-bootstrap.sh
+# sudo chroot /mnt /tmp/chroot-bootstrap.sh
+# sudo rm -f /mnt/tmp/chroot-bootstrap.sh
 
 # Remove temporary sources list - CloudInit regenerates it
 # sudo rm -f /mnt/etc/apt/sources.list
 
 # This could perhaps be replaced (more reliably) with an `lsof | grep -v /mnt` loop,
 # however in approximately 20 runs, the bind mounts have not failed to unmount.
-sleep 10 
+# sleep 10 
 
 # Unmount bind mounts
-#sudo umount -l /mnt/dev#sudo umount -l /mnt/proc#sudo umount -l /mnt/sys
-sudo mount | grep -v zfs | tac | awk '/\/mnt/ {print $3}' | xargs -i{} umount -lf {}
+# sudo umount -l /mnt/dev#sudo umount -l /mnt/proc#sudo umount -l /mnt/sys
+# sudo mount | grep -v zfs | tac | awk '/\/mnt/ {print $3}' | xargs -i{} umount -lf {}
 
 # Export the zpool
-sudo zpool export rpool
+# sudo zpool export rpool
 
 # Adduser if necessary
 # Necessary reboot
