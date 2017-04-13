@@ -4,9 +4,9 @@
 set -ex
 
 # Update apt and install required packages
-noninteractive sudo apt-add-repository universe
-noninteractive sudo apt-get update
-noninteractive sudo apt-get install -y \
+UBUNTU_FRONTEND=noninteractive sudo apt-add-repository universe
+UBUNTU_FRONTEND=noninteractive sudo apt-get update
+UBUNTU_FRONTEND=noninteractive sudo apt-get install -y \
 	zfsutils-linux \
 	zfs-initramfs \
 	debootstrap \
