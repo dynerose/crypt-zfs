@@ -1,6 +1,6 @@
 #!/bin/bash
 # zfs-bootstrap.sh
-
+ROOTDISK='/dev/sda'
 set -ex
 
 # Update apt and install required packages
@@ -13,8 +13,20 @@ UBUNTU_FRONTEND=noninteractive sudo apt-get install -y \
 	gdisk \
   dosfstools
 
+# Clear any old partitions and boot blocks. Warning! This will destroy data on your disks!
+sgdisk -z $ROOTDISK
 # Partition the new root EBS volume
-sudo sgdisk -Zg -n1:0:4095 -t1:EF02 -c1:GRUB -n2:0:0 -t2:BF01 -c2:ZFS /dev/sda
+# sudo sgdisk -Zg -n1:0:4095 -t1:EF02 -c1:GRUB -n2:0:0 -t2:BF01 -c2:ZFS /dev/sda
+# !/bin/bash
+sgdisk -z $ROOTDISK
+sgdisk -og $ROOTDISK
+sgdisk -n 1:2048:4095 -c 1:"BIOS Boot Partition" -t 1:ef02 $ROOTDISK
+sgdisk -n 2:4096:413695 -c 2:"EFI System Partition" -t 2:ef00 $ROOTDISK
+sgdisk -n 3:413696:823295 -c 3:"Linux /boot" -t 3:8300 $ROOTDISK
+ENDSECTOR=`sgdisk -E $ROOTDISK`
+sgdisk -n 4:823296:$ENDSECTOR -c 4:"crypt" -t 4:8300 $ROOTDISK
+sgdisk -p $ROOTDISK
+
 zpool destroy -f rpool
 sudo mount | grep -v zfs | tac | awk '/\/mnt/ {print $3}' | xargs -i{} umount -lf {}
 # Create zpool and filesystems on the new EBS volume
@@ -28,7 +40,7 @@ sudo zpool create \
 	-O normalization=formD \
 	-m none \
 	rpool \
-	/dev/sda2
+	${ROOTDISK}4
 
 # Root file system
 sudo zfs create \
