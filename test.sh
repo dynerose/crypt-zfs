@@ -67,7 +67,7 @@ sgdisk -g -n1:0:0 -t1:BF01 /dev/$DISKID &&
 sleep 2
 
 echo '2 create zfs'
-sudo zpool destroy $RPOOL
+sudo zpool destroy -f $RPOOL
 zpool create -o ashift=12 \
       -O atime=off -O canmount=off -O compression=lz4 -O normalization=formD \
       -O mountpoint=/ -R /mnt \
@@ -92,3 +92,34 @@ chmod 1777 /mnt/var/tmp
 #zfs set devices=off $RPOOL
 #sudo zfs list
 
+echo $RPOOL > /mnt/etc/hostname
+echo 127.0.1.1       $RPOOL >> /mnt/etc/hosts
+echo auto $IFACE >> /mnt/etc/network/interfaces.d/$IFACE
+echo iface $IFACE inet dhcp >> /mnt/etc/network/interfaces.d/$IFACE
+mount --rbind /dev  /mnt/dev
+mount --rbind /proc /mnt/proc
+mount --rbind /sys  /mnt/sys &&
+
+chroot /mnt /bin/bash -x <<'EOCHROOT'
+# chroot /mnt /bin/bash --login
+cat >> /etc/apt/sources.list << EOLIST
+deb http://archive.ubuntu.com/ubuntu xenial main universe restricted multiverse
+deb-src http://archive.ubuntu.com/ubuntu xenial main universe restricted multiverse
+deb http://security.ubuntu.com/ubuntu xenial-security main universe restricted multiverse
+deb-src http://security.ubuntu.com/ubuntu xenial-security main universe restricted multiverse
+deb http://archive.ubuntu.com/ubuntu xenial-updates main universe restricted multiverse
+deb-src http://archive.ubuntu.com/ubuntu xenial-updates main universe restricted multiverse
+EOLIST
+
+ln -s /proc/self/mounts /etc/mtab &&
+apt update &&
+locale-gen en_US.UTF-8 &&
+echo 'LANG="en_US.UTF-8"' > /etc/default/locale &&
+dpkg-reconfigure tzdata &&
+apt install --yes --no-install-recommends linux-image-generic wget nano &&
+apt install --yes zfs-initramfs &&
+apt install --yes ubuntu-minimal zfsutils-linux &&
+
+# apt install --yes ubuntu-minimal
+# apt install --yes openssh-server cryptsetup grub-efi
+# apt install --yes zfsutils-linux grub-pc dosfstools gdisk
