@@ -41,8 +41,8 @@ echo "ZFS pool set to $RPOOL"
 echo "Set a username for the new system:"
 read USERNAME
 echo "Username set to $USERNAME"
-#echo "Set a password for the new system/user:"
-#read PASSWORD
+echo "Set a password for the new system/user:"
+read PASSWORD
 ifconfig -a
 echo "Type the name of your network interface:"
 read IFACE
@@ -123,3 +123,27 @@ apt install --yes ubuntu-minimal zfsutils-linux &&
 # apt install --yes ubuntu-minimal
 # apt install --yes openssh-server cryptsetup grub-efi
 # apt install --yes zfsutils-linux grub-pc dosfstools gdisk
+
+wget -q -O /etc/cron.hourly/zfs-check https://gist.githubusercontent.com/fire/65f7aa33b91d3af2aef0/raw/a0309ef9a6bec26b497b2ee7e00aaa2889310384/zfs-check.sh &&
+wget -q -O /etc/cron.monthly/zfs-scrub https://gist.githubusercontent.com/fire/65f7aa33b91d3af2aef0/raw/5b0904343897b1410fd57239879a0f43ff634883/zfs-scrub.sh &&
+chmod 755 /etc/cron.hourly/zfs-check /etc/cron.monthly/zfs-scrub &&
+wget -q -O /etc/sudoers.d/zfs https://gist.githubusercontent.com/fire/65f7aa33b91d3af2aef0/raw/36a2b9e37819abffc6bfc2a9a36859afabf47754/zfs.sudoers &&
+chmod 440 /etc/sudoers.d/zfs &&
+apt install --yes dosfstools &&
+if [[ "$GPTBOOT" == "GPT" ]]
+  then mkdosfs -F 32 -n EFI /dev/${DISKID}3 &&
+  mkdir /boot/efi &&
+  echo PARTUUID=$(blkid -s PARTUUID -o value /dev/${DISKID}3) /boot/efi vfat defaults 0 1 >> /etc/fstab &&
+  mount /boot/efi &&
+  apt install --yes grub-efi-amd64 &&
+  sleep 2
+fi
+if [[ "$MBRBOOT" == "MBR" ]]
+  then
+  apt install --yes grub-pc &&
+  sleep 2
+fi
+# addgroup --system sambashare
+sudo adduser $USERNAME --gecos "First Last,RoomNumber,WorkPhone,HomePhone" --disabled-password
+echo "$USERNAME:$PASSWORD" | sudo chpasswd
+
