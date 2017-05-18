@@ -88,9 +88,9 @@ zfs create -o com.sun:auto-snapshot=false -o exec=on  $RPOOL/var/tmp
 chmod 1777 /mnt/var/tmp
 
 "echo '3.Install the minimal system:'
-#debootstrap xenial /mnt
-#zfs set devices=off $RPOOL
-#sudo zfs list
+debootstrap xenial /mnt
+zfs set devices=off $RPOOL
+sudo zfs list
 
 echo $RPOOL > /mnt/etc/hostname
 echo 127.0.1.1       $RPOOL >> /mnt/etc/hosts
