@@ -147,3 +147,31 @@ fi
 sudo adduser $USERNAME --gecos "First Last,RoomNumber,WorkPhone,HomePhone" --disabled-password
 echo "$USERNAME:$PASSWORD" | sudo chpasswd
 
+zfs set mountpoint=legacy $RPOOL/var/log
+zfs set mountpoint=legacy $RPOOL/var/tmp
+cat >> /etc/fstab << EOF
+rpool/var/log /var/log zfs defaults 0 0
+rpool/var/tmp /var/tmp zfs defaults 0 0
+EOF
+ln -s /dev/$DISKID /dev/${DISKID}3
+grub-probe /
+update-initramfs -c -k all
+update-grub
+if [[ "$GPTBOOT" == "GPT" ]]
+  then
+  grub-install --target=x86_64-efi --efi-directory=/boot/efi \
+  --bootloader-id=ubuntu --recheck --no-floppy &&
+  sleep 4
+  fi
+if [[ "$MBRBOOT" == "MBR" ]]
+  then
+  grub-install /dev/$DISKID &&
+  sleep 4
+fi
+
+ls /boot/grub/*/zfs.mod
+sed -i -e 's/GRUB_HIDDEN_TIMEOUT=0/#GRUB_HIDDEN_TIMEOUT=5/g'
+sed -i -e 's/"quiet splash"/""/g'
+sed -i -e 's/#GRUB_TERMINAL=console/GRUB_TERMINAL=console/g'
+update-grub
+zfs snapshot $RPOOL/ROOT/ubuntu@install
