@@ -1,5 +1,6 @@
 #!/bin/bash
-
+#passwd
+#sudo su
 # save some precious memory ;)
 systemctl stop lightdm && 
 apt update &&
@@ -27,8 +28,9 @@ TARGET_HOSTNAME="test"
 IFACE="ens33"
 DISK="/dev/sda"
 
-MBRBOOT="MBR"
-GPTBOOT="NO" #GPT
+MBRBOOT=MBR
+GPTBOOT=GPT
+GPTBOOT=NO
 
 apt update &&
 apt install --yes debootstrap zfsutils-linux zfs-initramfs software-properties-common gdisk mdadm &&
@@ -201,9 +203,20 @@ if [[ "$GPTBOOT" == "GPT" ]]
   apt install --yes grub-efi-amd64 &&
   sleep 2
 fi
+ln -s mapper/rpool_crypt /dev/rpool_crypt &&
+sleep 2
 # if [[ "$MBRBOOT" == "MBR" ]]
 #  then
-  apt install --yes grub-pc &&
+	#	apt install --yes grub-pc &&
+	DEBIAN_FRONTEND=noninteractive apt-get -y install grub-pc &&
+	echo "grub-pc grub-pc/kopt_extracted boolean true" | debconf-set-selections
+	echo "grub-pc grub2/linux_cmdline string" | debconf-set-selections
+	echo "grub-pc grub-pc/install_devices multiselect $DISK" | debconf-set-selections
+	echo "grub-pc grub-pc/install_devices_failed_upgrade boolean true" | debconf-set-selections
+	echo "grub-pc grub-pc/install_devices_disks_changed multiselect $DISK" | debconf-set-selections
+	dpkg-reconfigure -f noninteractive grub-pc &&
+  
+  
   sleep 2
 # fi
 addgroup --system lpadmin
@@ -218,15 +231,11 @@ if [[ "$CRYPTED" == "YES" ]]
 		echo  rpool_crypt UUID=$(blkid -s UUID -o value $DISK$CRYPT_DISK) none luks > /etc/crypttab
 		echo 'ENV{DM_NAME}=="rpool_crypt", SYMLINK+="rpool_crypt"' > /etc/udev/rules.d/99-local.rules # Assure that future kernel updates will succeed by always creating the symbolic link.
 		# Without this symbolic link update-grub will complain that is can't find the canonical path and error. 
-		ln -s mapper/rpool_crypt /dev/rpool_crypt
-		sleep 2
 	fi
-
 # UNCONFIGURED FSTAB FOR BASE SYSTEM
 # /dev/disk/by-uuid/736533ad-8b49-43c1-ba06-57c8aeccebf3 /boot/grub auto defaults 0 1
 # /dev/mapper/crypt1 / zfs defaults 0 0
 # /dev/zvol/rpool/SWAP none swap defaults 0 
-
 # 4.11 Fix filesystem mount ordering
 zfs set mountpoint=legacy rpool/var/log
 zfs set mountpoint=legacy rpool/var/tmp
@@ -235,10 +244,7 @@ rpool/var/log /var/log zfs defaults 0 0
 rpool/var/tmp /var/tmp zfs defaults 0 0
 EOF
 
-# 4.8 Install GRUB
-apt install --yes grub2-common grub-pc &&
-
- #mount /boot
+#mount /boot
 #mkdir /boot/efi
 #mount /boot/efi
 
@@ -275,6 +281,7 @@ update-grub
 #5.5a For legacy (MBR) booting, install GRUB to the MBR:
 if [[ "$MBRBOOT" == "MBR" ]]
   then
+  echo "1234"
   grub-install $DISK &&
   sleep 4
 fi
@@ -320,7 +327,7 @@ done
 
 # Disable root password
 usermod -p '*' root
-done
+
 echo 'Exiting chroot.'
 EOCHROOT
 
