@@ -114,7 +114,7 @@
 # -------Set the following variables ---------------------------------------------------------------
 
 # Which version of Ubuntu to install trusty=14.04 xenial=16.04
-SUITE=xenial
+SUITE=zesty
 
 # Userid to create in new system
 USERNAME=sa
